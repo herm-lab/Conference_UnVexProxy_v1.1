@@ -1,0 +1,219 @@
+ПОДРОБНЫЕ ПОЯСНЕНИЯ К ФАЙЛУ settings.js
+
+Этот файл содержит подробные объяснения к каждому блоку кода в settings.js. Settings.js — это JavaScript-файл, управляющий страницей настроек расширения. Он обрабатывает загрузку и сохранение настроек избирательного режима прокси, пользовательских и популярных сайтов, взаимодействует с хранилищем и отправляет сообщения в background.js. Пояснения отражают полный смысл кода, что происходит в каждом блоке, какие функции вызываются, условия, логику работы и взаимодействие с UI.
+
+================================================================================
+
+БЛОК 1: Ключи для хранения данных в chrome.storage.local
+
+КОД:
+// Ключи для хранения данных в chrome.storage.local
+const SELECTIVE_MODE_KEY = 'fancyProxy_selectiveMode';
+const CUSTOM_SITES_KEY = 'fancyProxy_customSites';
+const POPULAR_SITES_KEY = 'fancyProxy_popularSites';
+
+ПОЯСНЕНИЕ:
+Это константы, определяющие уникальные ключи для доступа к данным в локальном хранилище браузера (chrome.storage.local). Локальное хранилище сохраняет данные между сессиями браузера и доступно только для этого расширения.
+- SELECTIVE_MODE_KEY: Ключ для хранения булевого значения, указывающего, включён ли избирательный режим прокси (true/false).
+- CUSTOM_SITES_KEY: Ключ для массива строк с пользовательскими сайтами (например, ['example.com', 'site.org']).
+- POPULAR_SITES_KEY: Ключ для объекта с популярными сайтами и их статусами (например, { youtube: true, chatgpt: false, instagram: true }).
+
+================================================================================
+
+БЛОК 2: Вспомогательная функция el
+
+КОД:
+function el(id) {
+  return document.getElementById(id);
+}
+
+ПОЯСНЕНИЕ:
+Это вспомогательная функция для сокращения кода. Она возвращает DOM-элемент по его ID. Используется для получения элементов страницы настроек (например, el('selectiveModeToggle')).
+
+================================================================================
+
+БЛОК 3: Функция для отображения списка пользовательских сайтов
+
+КОД:
+// Функция для отображения списка пользовательских сайтов
+function renderSites(list) {
+  const ul = el('sitesList');
+  ul.innerHTML = '';
+  list.forEach((site, index) => {
+    const li = document.createElement('li');
+    li.className = 'site-item';
+    const span = document.createElement('span');
+    span.textContent = site;
+    const button = document.createElement('button');
+    button.className = 'remove-btn';
+    button.textContent = '✕';
+    button.onclick = () => removeSite(index);
+    li.appendChild(span);
+    li.appendChild(button);
+    ul.appendChild(li);
+  });
+}
+
+ПОЯСНЕНИЕ:
+Функция для динамического создания и отображения списка пользовательских сайтов в UI.
+- Очищает список (ul.innerHTML = '').
+- Для каждого сайта (site) в массиве list создаёт элемент списка (li) с классом 'site-item'.
+- Создаёт span с текстом сайта и кнопку '✕' для удаления, которая вызывает removeSite(index).
+- Добавляет элементы в DOM (список ul с ID 'sitesList').
+
+================================================================================
+
+БЛОК 4: Функция для загрузки настроек из хранилища и обновления UI
+
+КОД:
+// Функция для загрузки настроек из хранилища и обновления UI
+async function loadSettings() {
+  const data = await chrome.storage.local.get([SELECTIVE_MODE_KEY, CUSTOM_SITES_KEY, POPULAR_SITES_KEY]);
+  const selectiveMode = data[SELECTIVE_MODE_KEY] || false;
+  const customSites = data[CUSTOM_SITES_KEY] || [];
+  const popularSites = data[POPULAR_SITES_KEY] || { youtube: false, chatgpt: false, instagram: false };
+
+  el('selectiveModeToggle').checked = selectiveMode;
+  el('selectiveSettings').style.display = selectiveMode ? 'block' : 'none';
+  renderSites(customSites);
+  el('youtubeToggle').checked = popularSites.youtube;
+  el('chatgptToggle').checked = popularSites.chatgpt;
+  el('instagramToggle').checked = popularSites.instagram;
+}
+
+ПОЯСНЕНИЕ:
+Асинхронная функция для загрузки настроек из хранилища и обновления интерфейса страницы.
+- Извлекает данные из хранилища по трём ключам.
+- Устанавливяает значения по умолчанию, если данных нет.
+- Обновляет чекбокс избирательного режима, видимость блока настроек, список сайтов и чекбоксы популярных сайтов.
+
+================================================================================
+
+БЛОК 5: Функция для сохранения настроек
+
+КОД:
+async function saveSettings() {
+  const selectiveMode = el('selectiveModeToggle').checked;
+  const customSites = await chrome.storage.local.get(CUSTOM_SITES_KEY).then(data => data[CUSTOM_SITES_KEY] || []);
+  const popularSites = {
+    youtube: el('youtubeToggle').checked,
+    chatgpt: el('chatgptToggle').checked,
+    instagram: el('instagramToggle').checked
+  };
+
+  chrome.runtime.sendMessage({
+    type: 'updateSelectiveSettings',
+    selectiveMode,
+    customSites,
+    popularSites
+  });
+}
+
+ПОЯСНЕНИЕ:
+Асинхронная функция для сохранения текущих настроек.
+- Собирает значения из UI: состояние чекбокса, список сайтов из хранилища, объект популярных сайтов.
+- Отправляет сообщение 'updateSelectiveSettings' в background.js с данными для обновления логики прокси.
+
+================================================================================
+
+БЛОК 6: Слушатель изменения избирательного режима
+
+КОД:
+el('selectiveModeToggle').addEventListener('change', () => {
+  const checked = el('selectiveModeToggle').checked;
+  el('selectiveSettings').style.display = checked ? 'block' : 'none';
+  saveSettings();
+});
+
+ПОЯСНЕНИЕ:
+Слушатель события 'change' на чекбоксе 'selectiveModeToggle'.
+- При изменении состояния: показывает/скрывает блок настроек ('selectiveSettings').
+- Вызывает saveSettings() для сохранения изменений.
+
+================================================================================
+
+БЛОК 7: Слушатель добавления сайта
+
+КОД:
+el('addSiteBtn').addEventListener('click', async () => {
+  const site = el('siteInput').value.trim();
+  if (!site) return;
+  const data = await chrome.storage.local.get(CUSTOM_SITES_KEY);
+  const customSites = data[CUSTOM_SITES_KEY] || [];
+  if (!customSites.includes(site)) {
+    customSites.push(site);
+    await chrome.storage.local.set({ [CUSTOM_SITES_KEY]: customSites });
+    renderSites(customSites);
+    saveSettings();
+  }
+  el('siteInput').value = '';
+});
+
+ПОЯСНЕНИЕ:
+Слушатель клика на кнопку 'addSiteBtn'.
+- Получает значение из поля 'siteInput', обрезает пробелы.
+- Если значение пустое, ничего не делает.
+- Загружает текущий список сайтов, добавляет новый сайт, если его нет в списке.
+- Сохраняет обновлённый список, перерисовывает UI, сохраняет настройки.
+- Очищает поле ввода.
+
+================================================================================
+
+БЛОК 8: Функция для удаления сайта из списка пользовательских сайтов
+
+КОД:
+// Функция для удаления сайта из списка пользовательских сайтов
+async function removeSite(index) {
+  const data = await chrome.storage.local.get(CUSTOM_SITES_KEY);
+  const customSites = data[CUSTOM_SITES_KEY] || [];
+  customSites.splice(index, 1);
+  await chrome.storage.local.set({ [CUSTOM_SITES_KEY]: customSites });
+  renderSites(customSites);
+  saveSettings();
+}
+
+ПОЯСНЕНИЕ:
+Асинхронная функция для удаления сайта по индексу.
+- Загружает список сайтов, удаляет элемент по индексу с помощью splice.
+- Сохраняет обновлённый список, перерисовывает UI, сохраняет настройки.
+
+================================================================================
+
+БЛОК 9: Слушатели изменений популярных сайтов
+
+КОД:
+el('youtubeToggle').addEventListener('change', saveSettings);
+el('chatgptToggle').addEventListener('change', saveSettings);
+el('instagramToggle').addEventListener('change', saveSettings);
+
+ПОЯСНЕНИЕ:
+Слушатели события 'change' на чекбоксах популярных сайтов (youtube, chatgpt, instagram).
+- При изменении любого чекбокса вызывается saveSettings() для сохранения изменений.
+
+================================================================================
+
+БЛОК 10: Слушатель кнопки назад
+
+КОД:
+el('backBtn').addEventListener('click', () => {
+  window.close();
+});
+
+ПОЯСНЕНИЕ:
+Слушатель клика на кнопку 'backBtn'.
+- Закрывает окно настроек с помощью window.close().
+
+================================================================================
+
+БЛОК 11: Инициализация при загрузке страницы
+
+КОД:
+(async () => {
+  await loadSettings();
+})();
+
+ПОЯСНЕНИЕ:
+Анонимная асинхронная функция (IIFE), выполняющаяся при загрузке страницы настроек.
+- Вызывает loadSettings() для загрузки и отображения сохранённых настроек.
+
+666
