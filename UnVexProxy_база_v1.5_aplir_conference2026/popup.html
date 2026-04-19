@@ -1,0 +1,127 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+
+  <meta charset="UTF-8">
+
+  <title>UnVexProxy</title>
+  
+  <style>
+    /* Стили для тела страницы */
+    body {
+      font-family: Arial, sans-serif;
+      padding: 10px;
+      width: 320px;
+      background: #f3f3f3;
+    }
+    /* Стили для полей ввода, выпадающих списков и кнопок*/
+    input, select, button {
+      margin: 4px 0;
+      padding: 6px;
+      width: 100%;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    button {
+      cursor: pointer;
+    }
+
+    ul { list-style: none; padding: 0; }
+    /* Стили для элементов профиля(карточка профиля): отступы, фон, рамка, тень */
+    .profile-item { margin-top: 6px; padding: 6px; background: #fff; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+    
+    .profile-meta { font-size: 0.9em; color: #777; }
+    /* Стили для действий профиля: отступ, flexbox для выравнивания */
+    .profile-actions { margin-top: 6px; display: flex; justify-content: space-between; }
+    /* Стили для маленьких кнопок: flex-grow, отступы */
+    .small-btn { flex: 1; margin: 2px; }
+
+    /* Стили для переключателя*/
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
+      margin-right: 10px;
+    }
+    /* Стили для скрытого чекбокса в переключателе */
+    .switch input { opacity: 0; width: 0; height: 0; }
+    /* Стили для ползунка переключателя: позиционирование, цвета, переходы */
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0;
+      right: 0; bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 24px;
+    }
+    /* Стили для кружка внутри ползунка */
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px; width: 18px;
+      left: 3px; bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    /* Стили для ползунка при включённом состоянии: синий фон */
+    input:checked + .slider {
+      background-color: #379cef;
+    }
+    /* Стили для кружка при включённом состоянии: сдвиг вправо */
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    /* Стили для обёртки переключателя(flexbox)  slider прокси включен (в одну строку и слайдер, и статус)*/
+    .toggle-wrapper {
+      display: flex;
+      align-items: center;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Заголовок popup с кнопкой настроек -->
+  <h3 style="position: relative;">UnVexProxy <button id="settingsBtn" style="position: absolute; right: -163px; background: none; border: none; font-size: 18px; cursor: pointer;">⚙</button></h3>
+  <!-- Поле для протокола (только чтение, значение HTTP(socks5 нет))) -->
+  <input id="protocol" type="text" value="HTTP" readonly style="background: #fff; border: 1px solid #ccc; padding: 6px; border-radius: 4px; width: 104%; box-sizing: border-box; margin: 4px 0;">
+  <!-- Поля ввода -->
+  <input id="name" placeholder="Название прокси">
+  
+  <input id="host" placeholder="IP-адрес">
+  
+  <input id="port" placeholder="Порт">
+  
+  <input id="username" placeholder="Логин">
+  
+  <input id="password" type="password" placeholder="Пароль">
+  
+  <button id="saveBtn">Сохранить профиль</button>
+  
+  <button id="connectBtn">Подключиться</button>
+  <!-- Обёртка для переключателя прокси(слайдер) -->
+  <div class="toggle-wrapper">
+    <!-- Переключатель (toggle) для включения/выключения прокси -->
+    <label class="switch">
+      <input type="checkbox" id="proxyToggle">
+      <span class="slider round"></span>
+    </label>
+    <!-- Статус переключателя -->
+    <span id="toggleLabel">Прокси выключен</span>
+  </div>
+  <!-- Элемент статуса действия(Консоль1) -->
+  <div id="status"></div>
+  <!-- Кнопка для тестирования IP через прокси -->
+  <button id="testBtn">Проверить IP</button>
+  <!-- Элемент результата теста IP(Консоль2) -->
+  <div id="testResult"></div>
+  <h4>Профили</h4>
+  <!-- Список сохранённых профилей -->
+  <ul id="profilesList"></ul>
+  <!-- Подключение JavaScript-файла для логики popup -->
+  <script src="popup.js"></script>
+</body>
+</html>
